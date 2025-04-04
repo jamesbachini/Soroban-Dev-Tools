@@ -1,11 +1,14 @@
 # Soroban Dev Tools
 
-A collection of point and click tools for developers working on Stellar Soroban smart contracts
+A collection of point-and-click tools for developers working on Stellar Soroban smart contracts.
 
-### Contract Tester
-https://jamesbachini.github.io/Soroban-Dev-Tools/invoke.html
+## Available Tools
 
-### Trustlines
-https://jamesbachini.github.io/Soroban-Dev-Tools/trustlines.html
+### [Contract Tester](https://jamesbachini.github.io/Soroban-Dev-Tools/invoke.html)
+Test and invoke Soroban smart contracts with an easy-to-use interface.
 
-All tools are individual html files so you can move them wherever and run locally if required.
+### [Trustlines](https://jamesbachini.github.io/Soroban-Dev-Tools/trustlines.html)
+Manage trustlines for Stellar Soroban assets effortlessly.
+
+## Usage
+All tools are standalone HTML files, so you can move them wherever you need and run them locally if required.
