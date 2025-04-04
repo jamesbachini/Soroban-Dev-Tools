@@ -49,9 +49,16 @@
   <script>
     const argumentTypes = [
       { value: "string", label: "String" },
-      { value: "i64", label: "i64 (Integer)" },
       { value: "bool", label: "Boolean" },
-      { value: "address", label: "Address" }
+      { value: "address", label: "Address" },
+      { value: "i32", label: "i32 (Integer)" },
+      { value: "i64", label: "i64 (Integer)" },
+      { value: "i128", label: "i128 (Integer)" },
+      { value: "i256", label: "i256 (Integer)" },
+      { value: "u32", label: "u32 (Unsigned)" },
+      { value: "u64", label: "u64 (Unsigned)" },
+      { value: "u128", label: "u128 (Unsigned)" },
+      { value: "u256", label: "u256 (Unsigned)" },
     ];
 
     function createArgRow() {
@@ -91,13 +98,21 @@
       switch(type) {
         case 'string':
           return StellarSdk.nativeToScVal(val, { type: "string" });
-        case 'i64': {
+        case 'i32':
+        case 'i64':
+        case 'i128':
+        case 'i256':
+        case 'u32':
+        case 'u64':
+        case 'u128':
+        case 'u256': {
           const num = Number(val);
           if (isNaN(num)) {
-            throw new Error(`Value "${val}" is not a valid number for type i64.`);
+            throw new Error(`Value "${val}" is not a valid number for type ${type}.`);
           }
-          return StellarSdk.nativeToScVal(num, { type: "i64" });
+          return StellarSdk.nativeToScVal(num, { type });
         }
+        
         case 'bool': {
           if (typeof val === "string") {
             const lower = val.toLowerCase();
