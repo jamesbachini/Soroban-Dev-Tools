@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blend Protocol Tester</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/13.1.0/stellar-sdk.js"></script>
+  <script src="dist/bundle.js"></script>
+</head>
+<body>
+  <h1>Blend Protocol Tester</h1>
+  <div class="container">
+    <div class="form-group">
+      <label for="network">Select Network</label>
+      <select id="network">
+        <!-- Default network is Mainnet -->
+        <option value="TESTNET">Testnet</option>
+        <option value="PUBLIC" selected>Mainnet</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="poolContract">Pool Contract</label>
+      <input type="text" id="poolContract" value="CDVQVKOY2YSXS2IC7KN6MNASSHPAO7UN2UR2ON4OI2SKMFJNVAMDX6DP">
+    </div>
+    <div class="form-group">
+      <label for="usdcContract">USDC Contract</label>
+      <input type="text" id="usdcContract" value="CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75">
+    </div>
+    <div class="form-group">
+      <label for="amount">Amount (100000 = $0.01 USDC)</label>
+      <input type="text" id="amount" value="100000">
+    </div>
+    <div class="form-group">
+      <label for="secretKey">Source Secret Key</label>
+      <input type="text" id="secretKey" placeholder="Enter your secret key">
+    </div>
+    <button id="depositButton">Deposit</button>
+    <button id="withdrawButton">Withdraw</button>
+    <div class="result-area" id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById('depositButton').addEventListener('click', async () => {
+      const network = document.getElementById('network').value;
+      const poolContract = document.getElementById('poolContract').value.trim();
+      const usdcContract = document.getElementById('usdcContract').value.trim();
+      const amount = parseInt(document.getElementById('amount').value.trim(), 10);
+      const secretKey = document.getElementById('secretKey').value.trim();
+      let sourceKeypair;
+      try {
+        sourceKeypair = StellarSdk.Keypair.fromSecret(secretKey);
+      } catch (error) {
+        alert("Invalid secret key: " + error);
+        return;
+      }
+      const publicKey = sourceKeypair.publicKey();
+      const networkPassphrase = network === 'TESTNET'
+        ? StellarSdk.Networks.TESTNET
+        : StellarSdk.Networks.PUBLIC;
+      const rpcURL = network === 'TESTNET'
+        ? 'https://soroban-testnet.stellar.org'
+        : 'https://mainnet.sorobanrpc.com';
+      const rpc = new StellarSdk.rpc.Server(rpcURL);
+      let sourceAccount = await rpc.getAccount(publicKey);
+      const resultArea = document.getElementById('result');
+      let tx;
+      try {
+        const blendPool = new BlendSdk.PoolContract(poolContract);
+        const supplyOpXDR = StellarSdk.xdr.Operation.fromXDR(
+          blendPool.submit({
+              from: publicKey,
+              spender: publicKey,
+              to: publicKey,
+              requests: [
+                  {
+                      amount: amount,
+                      request_type: BlendSdk.RequestType.SupplyCollateral,
+                      address: usdcContract,
+                  },
+              ],
+          }),
+          'base64'
+        );
+        tx = new StellarSdk.TransactionBuilder(sourceAccount, {
+          fee: StellarSdk.BASE_FEE,
+          networkPassphrase: networkPassphrase,
+        })
+        .addOperation(supplyOpXDR)
+        .setTimeout(30)
+        .build();
+        resultArea.innerText += "Processing transaction...";
+        const preparedTx = await rpc.prepareTransaction(tx);
+        preparedTx.sign(sourceKeypair);
+        const txResult = await rpc.sendTransaction(preparedTx);
+        resultArea.innerText += "\nTransaction successful:\n" + JSON.stringify(txResult, null, 2);
+      } catch (error) {
+        console.error("Transaction error:", error);
+        alert("Transaction error: " + error);
+        resultArea.innerText += "\nError: " + error.message;
+      }
+    });
+
+    document.getElementById('withdrawButton').addEventListener('click', async () => {
+      const network = document.getElementById('network').value;
+      const poolContract = document.getElementById('poolContract').value.trim();
+      const usdcContract = document.getElementById('usdcContract').value.trim();
+      const amount = parseInt(document.getElementById('amount').value.trim(), 10);
+      const secretKey = document.getElementById('secretKey').value.trim();
+      let sourceKeypair;
+      try {
+        sourceKeypair = StellarSdk.Keypair.fromSecret(secretKey);
+      } catch (error) {
+        alert("Invalid secret key: " + error);
+        return;
+      }
+      const publicKey = sourceKeypair.publicKey();
+      const networkPassphrase = network === 'TESTNET'
+        ? StellarSdk.Networks.TESTNET
+        : StellarSdk.Networks.PUBLIC;
+      const rpcURL = network === 'TESTNET'
+        ? 'https://soroban-testnet.stellar.org'
+        : 'https://mainnet.sorobanrpc.com';
+      const rpc = new StellarSdk.rpc.Server(rpcURL);
+      let sourceAccount = await rpc.getAccount(publicKey);
+      const resultArea = document.getElementById('result');
+      let tx;
+      try {
+        const blendPool = new BlendSdk.PoolContract(poolContract);
+        const supplyOpXDR = StellarSdk.xdr.Operation.fromXDR(
+          blendPool.submit({
+              from: publicKey,
+              spender: publicKey,
+              to: publicKey,
+              requests: [
+                  {
+                      amount: amount,
+                      request_type: BlendSdk.RequestType.WithdrawCollateral,
+                      address: usdcContract,
+                  },
+              ],
+          }),
+          'base64'
+        );
+        tx = new StellarSdk.TransactionBuilder(sourceAccount, {
+          fee: StellarSdk.BASE_FEE,
+          networkPassphrase: networkPassphrase,
+        })
+        .addOperation(supplyOpXDR)
+        .setTimeout(30)
+        .build();
+        resultArea.innerText += "Processing transaction...";
+        const preparedTx = await rpc.prepareTransaction(tx);
+        preparedTx.sign(sourceKeypair);
+        const txResult = await rpc.sendTransaction(preparedTx);
+        resultArea.innerText += "\nTransaction successful:\n" + JSON.stringify(txResult, null, 2);
+      } catch (error) {
+        console.error("Transaction error:", error);
+        alert("Transaction error: " + error);
+        resultArea.innerText += "\nError: " + error.message;
+      }
+    });
+  </script>
+
+  <style>
+    body {
+      font-family: Tahoma, Verdana, sans-serif;
+      margin: 2rem;
+      background-color: #f5f5f5;
+    }
+    h1, h2, h3, h4 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    input[type="text"],
+    select {
+      width: calc(100% - 1rem);
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background-color: #5b75bc;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .result-area {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #eef;
+      border: 1px solid #ccd;
+      border-radius: 5px;
+      word-wrap: break-word;
+    }
+  </style>
+</body>
+</html>
