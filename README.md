@@ -1,5 +1,3 @@
-# Soroban Dev Tools
-
 A collection of point-and-click tools for developers working on Stellar Soroban smart contracts.
 
 ## Available Tools
