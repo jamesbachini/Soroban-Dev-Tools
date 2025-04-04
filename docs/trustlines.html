@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soroban Trustline Tool</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/13.1.0/stellar-sdk.js"></script>
+</head>
+<body>
+  <h1>Soroban Trustline Tool</h1>
+  <div class="container">
+    <div class="form-group">
+      <label for="network">Select Network</label>
+      <select id="network">
+        <option value="TESTNET">Testnet</option>
+        <option value="PUBLIC">Mainnet</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="secretKey">Source Secret Key</label>
+      <input type="text" id="secretKey" placeholder="Enter your secret key">
+    </div>
+    <div class="form-group">
+      <label for="assetCode">Asset Code</label>
+      <input type="text" id="assetCode" placeholder="Enter asset code">
+    </div>
+    <div class="form-group">
+      <label for="issuerAddress">Issuer Address</label>
+      <input type="text" id="issuerAddress" placeholder="Enter issuer address">
+    </div>
+    <button id="addTrustlineButton">Add Trustline</button>
+    <div class="result-area" id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById('addTrustlineButton').addEventListener('click', async () => {
+      const network = document.getElementById('network').value;
+      const secretKey = document.getElementById('secretKey').value.trim();
+      const assetCode = document.getElementById('assetCode').value.trim();
+      const issuerAddress = document.getElementById('issuerAddress').value.trim();
+      if (!secretKey || !assetCode || !issuerAddress) {
+        alert("Please fill in all required fields.");
+        return;
+      }
+      let sourceKeypair = StellarSdk.Keypair.fromSecret(secretKey);
+      const publicKey = sourceKeypair.publicKey();
+      const networkPassphrase = network === 'TESTNET' ? StellarSdk.Networks.TESTNET : StellarSdk.Networks.PUBLIC;
+      const rpcURL = network === 'TESTNET' ? 'https://soroban-testnet.stellar.org' : 'https://mainnet.sorobanrpc.com';
+      const rpc = new StellarSdk.rpc.Server(rpcURL);
+      let sourceAccount = await rpc.getAccount(publicKey);
+      const asset = new StellarSdk.Asset(assetCode, issuerAddress);
+      const tx = new StellarSdk.TransactionBuilder(sourceAccount, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase: networkPassphrase,
+      })
+      .addOperation(StellarSdk.Operation.changeTrust({ asset }))
+      .setTimeout(30)
+      .build();
+      tx.sign(sourceKeypair);
+      try {
+        const txResult = await rpc.sendTransaction(tx);
+        document.getElementById('result').innerText = "Transaction successful:\n" + JSON.stringify(txResult, null, 2);
+      } catch (error) {
+        alert("Transaction error: " + error);
+        document.getElementById('result').innerText = "Error: " + error.message;
+      }
+    });
+  </script>
+
+  <style>
+    body {
+      font-family: Tahoma, Verdana, sans-serif;
+      margin: 2rem;
+      background-color: #f5f5f5;
+    }
+    h1, h2, h3, h4 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    input[type="text"],
+    select {
+      width: calc(100% - 1rem);
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background-color: #5b75bc;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .arg-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      vertical-align: middle;
+    }
+    .arg-row input[type="text"] {
+      flex: 2;
+    }
+    .arg-row select {
+      flex: 1;
+    }
+    .result-area {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #eef;
+      border: 1px solid #ccd;
+      border-radius: 5px;
+      word-wrap: break-word;
+    }
+  </style>
+</body>
+</html>
