@@ -4,6 +4,10 @@ A collection of point-and-click tools for developers working on Stellar Soroban 
 
 ## Available Tools
 
+
+### [Address Manager](https://jamesbachini.github.io/Soroban-Dev-Tools/address.html)
+Create and manage Stellar/Soroban addresses on mainnet and testnet.
+
 ### [Contract Tester](https://jamesbachini.github.io/Soroban-Dev-Tools/invoke.html)
 Test and invoke Soroban smart contracts with an easy-to-use interface.
 

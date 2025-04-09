@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stellar Address Manager</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stellar-sdk/13.1.0/stellar-sdk.min.js"></script>
+</head>
+<body>
+  <h1>Stellar Address Manager</h1>
+  <div class="container">
+    <div><input type="text" id="addressName" placeholder="Enter an alias for a new address" /></div>
+    <div><button id="generateBtn">Generate Address</button></div>
+  </div>
+  <br /><br />
+  <div id="addressList" class="address-list"></div>
+
+  <script>
+    // Retrieve saved addresses from localStorage or start with an empty array.
+    let addresses = JSON.parse(localStorage.getItem('stellarAddresses')) || [];
+
+    // Save addresses array in localStorage.
+    function saveAddresses() {
+      localStorage.setItem('stellarAddresses', JSON.stringify(addresses));
+    }
+
+    // Render the addresses in the DOM.
+    function renderAddresses() {
+      const container = document.getElementById('addressList');
+      container.innerHTML = ''; // Clear previous list
+
+      addresses.forEach((addr, index) => {
+        // Build the card HTML with the new "Copy Private Key" and "Testnet Fund" buttons.
+        const card = document.createElement('div');
+        card.className = 'address-card';
+        card.innerHTML = `
+          <h3>${addr.name}</h3>
+          <p>
+            <strong>Public Key:</strong> 
+            <div class="public-key">${addr.publicKey}</div>
+            <button onclick="copyPublicKey('${addr.publicKey}')">Copy Public Key</button>
+          </p>
+          <p>
+            <strong>Private Key:</strong> 
+            <div id="private-${index}" class="private-key" style="display:none;">${addr.secretKey}</div>
+            <button onclick="togglePrivateKey(${index}, this)">Show Private Key</button>
+            <button id="copyPrivate-${index}" onclick="copyPrivateKey(${index})" style="display:none;">Copy Private Key</button>
+          </p>
+          <div class="btn-group">
+            <button onclick="deleteAddress(${index})" style="background-color:#d9534f;">Delete</button>
+            <button onclick="fundAddress('${addr.publicKey}', ${index})" style="background-color:#5cb85c;">Testnet Fund</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Toggle private key display and show/hide the copy private key button.
+    function togglePrivateKey(index, btn) {
+      const pkSpan = document.getElementById('private-' + index);
+      const copyBtn = document.getElementById('copyPrivate-' + index);
+      if (pkSpan.style.display === 'none') {
+        pkSpan.style.display = 'inline';
+        copyBtn.style.display = 'inline';
+        btn.textContent = 'Hide Private Key';
+      } else {
+        pkSpan.style.display = 'none';
+        copyBtn.style.display = 'none';
+        btn.textContent = 'Show Private Key';
+      }
+    }
+
+    // Copy the public key to the clipboard.
+    function copyPublicKey(publicKey) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(publicKey).then(() => {
+          alert('Public key copied to clipboard!');
+        }).catch(err => {
+          alert('Error copying public key: ' + err);
+        });
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = publicKey;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          alert('Public key copied to clipboard!');
+        } catch (err) {
+          alert('Error copying public key: ' + err);
+        }
+        document.body.removeChild(textArea);
+      }
+    }
+
+    // Copy the private key to the clipboard.
+    function copyPrivateKey(index) {
+      const pkSpan = document.getElementById('private-' + index);
+      const privateKey = pkSpan.textContent.trim();
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(privateKey).then(() => {
+          alert('Private key copied to clipboard!');
+        }).catch(err => {
+          alert('Error copying private key: ' + err);
+        });
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = privateKey;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          alert('Private key copied to clipboard!');
+        } catch (err) {
+          alert('Error copying private key: ' + err);
+        }
+        document.body.removeChild(textArea);
+      }
+    }
+
+    // Delete an address from the list.
+    function deleteAddress(index) {
+      if (confirm('Are you sure you want to delete this address?')) {
+        addresses.splice(index, 1);
+        saveAddresses();
+        renderAddresses();
+      }
+    }
+
+    // Fund an address with testnet XLM using Friendbot.
+    function fundAddress(publicKey, index) {
+      const url = `https://friendbot.stellar.org/?addr=${publicKey}`;
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to fund account, status ' + response.status);
+          }
+          return response.json();
+        })
+        .then(data => {
+          alert(`Address funded successfully!\nResponse: ${JSON.stringify(data)}`);
+        })
+        .catch(err => {
+          alert('Error funding address: ' + err);
+        });
+    }
+
+    // Event listener for address generation.
+    document.getElementById('generateBtn').addEventListener('click', function() {
+      const nameInput = document.getElementById('addressName');
+      const name = nameInput.value.trim();
+      if (!name) {
+        alert('Please enter an address name.');
+        return;
+      }
+      // Generate a new keypair using Stellar SDK.
+      const keypair = StellarSdk.Keypair.random();
+      const newAddress = {
+        name: name,
+        publicKey: keypair.publicKey(),
+        secretKey: keypair.secret()
+      };
+
+      addresses.push(newAddress);
+      saveAddresses();
+      renderAddresses();
+      nameInput.value = '';
+    });
+
+    // Initial render.
+    renderAddresses();
+  </script>
+
+<style>
+    body {
+      font-family: Tahoma, Verdana, sans-serif;
+      margin: 2rem;
+      background-color: #f5f5f5;
+    }
+    h1, h2, h3, h4 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    input[type="text"],
+    select {
+      width: calc(100% - 1rem);
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background-color: #5b75bc;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .arg-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      vertical-align: middle;
+    }
+    .arg-row input[type="text"] {
+      flex: 2;
+    }
+    .arg-row select {
+      flex: 1;
+    }
+    .result-area {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #eef;
+      border: 1px solid #ccd;
+      border-radius: 5px;
+      word-wrap: break-word;
+    }
+    .address-list {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .address-card {
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .address-card h3 {
+      margin-top: 0;
+    }
+    .address-card p {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+      word-break: break-all;
+    }
+    .address-card .btn-group {
+      margin-top: 0.5rem;
+    }
+    .address-card .btn-group button {
+      margin-right: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .private-key {
+      font-family: monospace;
+      background-color: #eee;
+      padding: 0.25rem;
+      border-radius: 3px;
+    }
+  </style>
+</body>
+</html>
